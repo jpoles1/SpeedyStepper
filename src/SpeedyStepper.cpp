@@ -8,7 +8,6 @@
 //      *                                                                *
 //      ******************************************************************
 
-
 // MIT License
 // 
 // Copyright (c) 2014 Stanley Reifel & Co.
@@ -30,7 +29,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 
 //
 // This library is used to control one or more stepper motors.  It requires a  
@@ -188,9 +186,7 @@
 //        }
 //
 
-
 #include "SpeedyStepper.h"
-
 
 // ---------------------------------------------------------------------------------
 //                                  Setup functions 
@@ -199,13 +195,13 @@
 //
 // constructor for the stepper class
 //
-SpeedyStepper::SpeedyStepper()
-{
+SpeedyStepper::SpeedyStepper() {
   //
   // initialize constants
   //
   stepPin = 0;
   directionPin = 0;
+    enablePin = 0;
   stepsPerRevolution = 200.0;
   stepsPerMillimeter = 25.0;
   currentPosition_InSteps = 0;
@@ -214,8 +210,6 @@ SpeedyStepper::SpeedyStepper()
   currentStepPeriod_InUS = 0.0;
 }
 
-
-
 //
 // connect the stepper object to the IO pins
 //  Enter:  stepPinNumber = IO pin number for the Step
@@ -223,13 +217,24 @@ SpeedyStepper::SpeedyStepper()
 //          enablePinNumber = IO pin number for the enable bit (LOW is enabled)
 //            set to 0 if enable is not supported
 //
-void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber)
-{
+void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber) {
+    stepPin = stepPinNumber;
+    directionPin = directionPinNumber;
+
   //
-  // remember the pin numbers
+    // configure the IO bits
   //
+    pinMode(stepPin, OUTPUT);
+    digitalWrite(stepPin, LOW);
+
+    pinMode(directionPin, OUTPUT);
+    digitalWrite(directionPin, LOW);
+}
+
+void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber, byte enablePinNumber) {
   stepPin = stepPinNumber;
   directionPin = directionPinNumber;
+    enablePin = enablePinNumber;
   
   //
   // configure the IO bits
@@ -239,46 +244,38 @@ void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber)
 
   pinMode(directionPin, OUTPUT);
   digitalWrite(directionPin, LOW);
-}
 
+    pinMode(enablePin, OUTPUT);
+    digitalWrite(enablePin, LOW);
+}
 
 // ---------------------------------------------------------------------------------
 //                     Public functions with units in millimeters 
 // ---------------------------------------------------------------------------------
 
-
 //
 // set the number of steps the motor has per millimeter
 //
-void SpeedyStepper::setStepsPerMillimeter(float motorStepPerMillimeter)
-{
+void SpeedyStepper::setStepsPerMillimeter(float motorStepPerMillimeter) {
   stepsPerMillimeter = motorStepPerMillimeter;
 }
-
-
 
 //
 // get the current position of the motor in millimeter, this functions is updated
 // while the motor moves
 //  Exit:  a signed motor position in millimeter returned
 //
-float SpeedyStepper::getCurrentPositionInMillimeters()
-{
-  return((float)currentPosition_InSteps / stepsPerMillimeter);
+float SpeedyStepper::getCurrentPositionInMillimeters() {
+    return ((float)currentPosition_InSteps / stepsPerMillimeter);
 }
-
-
 
 //
 // set current position of the motor in millimeter, this does not move the motor
 //
-void SpeedyStepper::setCurrentPositionInMillimeters(float currentPositionInMillimeter)
-{
-  currentPosition_InSteps = (long) round(currentPositionInMillimeter * 
+void SpeedyStepper::setCurrentPositionInMillimeters(float currentPositionInMillimeter) {
+    currentPosition_InSteps = (long)round(currentPositionInMillimeter *
 			    stepsPerMillimeter);
 }
-
-
 
 //
 // set the maximum speed, units in millimeters/second, this is the maximum speed  
@@ -287,12 +284,9 @@ void SpeedyStepper::setCurrentPositionInMillimeters(float currentPositionInMilli
 //  Enter:  speedInMillimetersPerSecond = speed to accelerate up to, units in 
 //          millimeters/second
 //
-void SpeedyStepper::setSpeedInMillimetersPerSecond(float speedInMillimetersPerSecond)
-{
+void SpeedyStepper::setSpeedInMillimetersPerSecond(float speedInMillimetersPerSecond) {
   desiredSpeed_InStepsPerSecond = speedInMillimetersPerSecond * stepsPerMillimeter;
 }
-
-
 
 //
 // set the rate of acceleration, units in millimeters/second/second
@@ -301,8 +295,7 @@ void SpeedyStepper::setSpeedInMillimetersPerSecond(float speedInMillimetersPerSe
 //          units in millimeters/second/second
 //
 void SpeedyStepper::setAccelerationInMillimetersPerSecondPerSecond(
-                      float accelerationInMillimetersPerSecondPerSecond)
-{
+    float accelerationInMillimetersPerSecondPerSecond) {
     acceleration_InStepsPerSecondPerSecond = 
       accelerationInMillimetersPerSecondPerSecond * stepsPerMillimeter;
 }
@@ -313,15 +306,12 @@ void SpeedyStepper::setAccelerationInMillimetersPerSecondPerSecond(
 //  Enter:  distanceToMoveInMillimeters = signed distance to move relative to the  
 //          current position in millimeters
 //
-void SpeedyStepper::moveRelativeInMillimeters(float distanceToMoveInMillimeters)
-{
+void SpeedyStepper::moveRelativeInMillimeters(float distanceToMoveInMillimeters) {
   setupRelativeMoveInMillimeters(distanceToMoveInMillimeters);
   
-  while(!processMovement())
+    while (!processMovement())
     ;
 }
-
-
 
 //
 // setup a move relative to the current position, units are in millimeters, no   
@@ -330,13 +320,10 @@ void SpeedyStepper::moveRelativeInMillimeters(float distanceToMoveInMillimeters)
 //  Enter:  distanceToMoveInMillimeters = signed distance to move relative to the  
 //            currentposition in millimeters
 //
-void SpeedyStepper::setupRelativeMoveInMillimeters(float distanceToMoveInMillimeters)
-{
-  setupRelativeMoveInSteps((long) round(distanceToMoveInMillimeters * 
+void SpeedyStepper::setupRelativeMoveInMillimeters(float distanceToMoveInMillimeters) {
+    setupRelativeMoveInSteps((long)round(distanceToMoveInMillimeters *
 			   stepsPerMillimeter));
 }
-
-
 
 //
 // move to the given absolute position, units are in millimeters, this function 
@@ -345,15 +332,12 @@ void SpeedyStepper::setupRelativeMoveInMillimeters(float distanceToMoveInMillime
 //            move toin units of millimeters
 //
 void SpeedyStepper::moveToPositionInMillimeters(
-                      float absolutePositionToMoveToInMillimeters)
-{
+    float absolutePositionToMoveToInMillimeters) {
   setupMoveInMillimeters(absolutePositionToMoveToInMillimeters);
   
-  while(!processMovement())
+    while (!processMovement())
     ;
 }
-
-
 
 //
 // setup a move, units are in millimeters, no motion occurs until processMove() is 
@@ -362,13 +346,10 @@ void SpeedyStepper::moveToPositionInMillimeters(
 //          to in units of millimeters
 //
 void SpeedyStepper::setupMoveInMillimeters(
-                      float absolutePositionToMoveToInMillimeters)
-{
- setupMoveInSteps((long) round(absolutePositionToMoveToInMillimeters * 
+    float absolutePositionToMoveToInMillimeters) {
+    setupMoveInSteps((long)round(absolutePositionToMoveToInMillimeters *
    stepsPerMillimeter));
 }
-
-
 
 //
 // Get the current velocity of the motor in millimeters/second.  This functions is 
@@ -380,51 +361,36 @@ void SpeedyStepper::setupMoveInMillimeters(
 // the amount of torque that it can generate.
 //  Exit:  velocity speed in millimeters per second returned, signed
 //
-float SpeedyStepper::getCurrentVelocityInMillimetersPerSecond()
-{
-  return(getCurrentVelocityInStepsPerSecond() / stepsPerMillimeter);
+float SpeedyStepper::getCurrentVelocityInMillimetersPerSecond() {
+    return (getCurrentVelocityInStepsPerSecond() / stepsPerMillimeter);
 }
-
-
 
 // ---------------------------------------------------------------------------------
 //                     Public functions with units in revolutions 
 // ---------------------------------------------------------------------------------
 
-
 //
 // set the number of steps the motor has per revolution
 //
-void SpeedyStepper::setStepsPerRevolution(float motorStepPerRevolution)
-{
+void SpeedyStepper::setStepsPerRevolution(float motorStepPerRevolution) {
   stepsPerRevolution = motorStepPerRevolution;
 }
-
-
 
 //
 // get the current position of the motor in revolutions, this functions is updated
 // while the motor moves
 //  Exit:  a signed motor position in revolutions returned
 //
-float SpeedyStepper::getCurrentPositionInRevolutions()
-{
-  return((float)currentPosition_InSteps / stepsPerRevolution);
+float SpeedyStepper::getCurrentPositionInRevolutions() {
+    return ((float)currentPosition_InSteps / stepsPerRevolution);
 }
-
-
 
 //
 // set current position of the motor in revolutions, this does not move the motor
 //
-void SpeedyStepper::setCurrentPositionInRevolutions(
-   float currentPositionInRevolutions)
-{
-  currentPosition_InSteps = (long) round(
-    currentPositionInRevolutions * stepsPerRevolution);
+void SpeedyStepper::setCurrentPositionInRevolutions(float currentPositionInRevolutions) {
+    currentPosition_InSteps = (long)round(currentPositionInRevolutions * stepsPerRevolution);
 }
-
-
 
 //
 // set the maximum speed, units in revolutions/second, this is the maximum speed  
@@ -433,12 +399,9 @@ void SpeedyStepper::setCurrentPositionInRevolutions(
 //  Enter:  speedInRevolutionsPerSecond = speed to accelerate up to, units in 
 //            revolutions/second
 //
-void SpeedyStepper::setSpeedInRevolutionsPerSecond(float speedInRevolutionsPerSecond)
-{
+void SpeedyStepper::setSpeedInRevolutionsPerSecond(float speedInRevolutionsPerSecond) {
   desiredSpeed_InStepsPerSecond = speedInRevolutionsPerSecond * stepsPerRevolution;
 }
-
-
 
 //
 // set the rate of acceleration, units in revolutions/second/second
@@ -446,11 +409,8 @@ void SpeedyStepper::setSpeedInRevolutionsPerSecond(float speedInRevolutionsPerSe
 //  Enter:  accelerationInRevolutionsPerSecondPerSecond = rate of acceleration,  
 //            units inrevolutions/second/second
 //
-void SpeedyStepper::setAccelerationInRevolutionsPerSecondPerSecond(
-                      float accelerationInRevolutionsPerSecondPerSecond)
-{
-    acceleration_InStepsPerSecondPerSecond = 
-       accelerationInRevolutionsPerSecondPerSecond * stepsPerRevolution;
+void SpeedyStepper::setAccelerationInRevolutionsPerSecondPerSecond(float accelerationInRevolutionsPerSecondPerSecond) {
+    acceleration_InStepsPerSecondPerSecond = accelerationInRevolutionsPerSecondPerSecond * stepsPerRevolution;
 }
 
 //
@@ -459,15 +419,12 @@ void SpeedyStepper::setAccelerationInRevolutionsPerSecondPerSecond(
 //  Enter:  distanceToMoveInRevolutions = signed distance to move relative to the  
 //          current position in revolutions
 //
-void SpeedyStepper::moveRelativeInRevolutions(float distanceToMoveInRevolutions)
-{
+void SpeedyStepper::moveRelativeInRevolutions(float distanceToMoveInRevolutions) {
   setupRelativeMoveInRevolutions(distanceToMoveInRevolutions);
   
-  while(!processMovement())
+    while (!processMovement())
     ;
 }
-
-
 
 //
 // setup a move relative to the current position, units are in revolutions, no   
@@ -476,13 +433,9 @@ void SpeedyStepper::moveRelativeInRevolutions(float distanceToMoveInRevolutions)
 //  Enter:  distanceToMoveInRevolutions = signed distance to move relative to the  
 //          current position in revolutions
 //
-void SpeedyStepper::setupRelativeMoveInRevolutions(float distanceToMoveInRevolutions)
-{
-  setupRelativeMoveInSteps((long) round(distanceToMoveInRevolutions * 
-                           stepsPerRevolution));
+void SpeedyStepper::setupRelativeMoveInRevolutions(float distanceToMoveInRevolutions) {
+    setupRelativeMoveInSteps((long)round(distanceToMoveInRevolutions * stepsPerRevolution));
 }
-
-
 
 //
 // move to the given absolute position, units are in revolutions, this function 
@@ -491,15 +444,12 @@ void SpeedyStepper::setupRelativeMoveInRevolutions(float distanceToMoveInRevolut
 //          move to in units of revolutions
 //
 void SpeedyStepper::moveToPositionInRevolutions(
-       float absolutePositionToMoveToInRevolutions)
-{
+    float absolutePositionToMoveToInRevolutions) {
   setupMoveInRevolutions(absolutePositionToMoveToInRevolutions);
   
-  while(!processMovement())
+    while (!processMovement())
     ;
 }
-
-
 
 //
 // setup a move, units are in revolutions, no motion occurs until processMove() is 
@@ -508,13 +458,10 @@ void SpeedyStepper::moveToPositionInRevolutions(
 //          move to inunits of revolutions
 //
 void SpeedyStepper::setupMoveInRevolutions(
-          float absolutePositionToMoveToInRevolutions)
-{
- setupMoveInSteps((long) round(absolutePositionToMoveToInRevolutions * 
+    float absolutePositionToMoveToInRevolutions) {
+    setupMoveInSteps((long)round(absolutePositionToMoveToInRevolutions *
                    stepsPerRevolution));
 }
-
-
 
 //
 // Get the current velocity of the motor in revolutions/second.  This functions is 
@@ -526,41 +473,35 @@ void SpeedyStepper::setupMoveInRevolutions(
 // the amount of torque that it can generate.
 //  Exit:  velocity speed in revolutions per second returned, signed
 //
-float SpeedyStepper::getCurrentVelocityInRevolutionsPerSecond()
-{
-  return(getCurrentVelocityInStepsPerSecond() / stepsPerRevolution);
+float SpeedyStepper::getCurrentVelocityInRevolutionsPerSecond() {
+    return (getCurrentVelocityInStepsPerSecond() / stepsPerRevolution);
 }
-
-
 
 // ---------------------------------------------------------------------------------
 //                        Public functions with units in steps 
 // ---------------------------------------------------------------------------------
-
 
 //
 // set the current position of the motor in steps, this does not move the motor
 // Note: This function should only be called when the motor is stopped
 //    Enter:  currentPositionInSteps = the new position of the motor in steps
 //
-void SpeedyStepper::setCurrentPositionInSteps(long currentPositionInSteps)
-{
+void SpeedyStepper::setCurrentPositionInSteps(long currentPositionInSteps) {
   currentPosition_InSteps = currentPositionInSteps;
 }
-
-
 
 //
 // get the current position of the motor in steps, this functions is updated
 // while the motor moves
 //  Exit:  a signed motor position in steps returned
 //
-long SpeedyStepper::getCurrentPositionInSteps()
-{
-  return(currentPosition_InSteps);
+long SpeedyStepper::getCurrentPositionInSteps() {
+    return (currentPosition_InSteps);
 }
 
-
+void SpeedyStepper::hardStop() {
+    targetPosition_InSteps = currentPosition_InSteps;
+}
 
 //
 // setup a "Stop" to begin the process of decelerating from the current velocity to  
@@ -568,8 +509,7 @@ long SpeedyStepper::getCurrentPositionInSteps()
 // Note: This function can be used to stop a motion initiated in units of steps or 
 // revolutions
 //
-void SpeedyStepper::setupStop()
-{
+void SpeedyStepper::setupStop() {
   //
   // move the target position so that the motor will begin deceleration now
   //
@@ -579,20 +519,15 @@ void SpeedyStepper::setupStop()
     targetPosition_InSteps = currentPosition_InSteps - decelerationDistance_InSteps;
 }
 
-
-
 //
 // set the maximum speed, units in steps/second, this is the maximum speed reached  
 // while accelerating
 // Note: this can only be called when the motor is stopped
 //  Enter:  speedInStepsPerSecond = speed to accelerate up to, units in steps/second
 //
-void SpeedyStepper::setSpeedInStepsPerSecond(float speedInStepsPerSecond)
-{
+void SpeedyStepper::setSpeedInStepsPerSecond(float speedInStepsPerSecond) {
   desiredSpeed_InStepsPerSecond = speedInStepsPerSecond;
 }
-
-
 
 //
 // set the rate of acceleration, units in steps/second/second
@@ -601,8 +536,7 @@ void SpeedyStepper::setSpeedInStepsPerSecond(float speedInStepsPerSecond)
 //          steps/second/second
 //
 void SpeedyStepper::setAccelerationInStepsPerSecondPerSecond(
-                      float accelerationInStepsPerSecondPerSecond)
-{
+    float accelerationInStepsPerSecondPerSecond) {
     acceleration_InStepsPerSecondPerSecond = accelerationInStepsPerSecondPerSecond;
 }
 
@@ -612,15 +546,12 @@ void SpeedyStepper::setAccelerationInStepsPerSecondPerSecond(
 //  Enter:  distanceToMoveInSteps = signed distance to move relative to the current 
 //            position in steps
 //
-void SpeedyStepper::moveRelativeInSteps(long distanceToMoveInSteps)
-{
+void SpeedyStepper::moveRelativeInSteps(long distanceToMoveInSteps) {
   setupRelativeMoveInSteps(distanceToMoveInSteps);
   
-  while(!processMovement())
+    while (!processMovement())
     ;
 }
-
-
 
 //
 // setup a move relative to the current position, units are in steps, no motion  
@@ -629,12 +560,9 @@ void SpeedyStepper::moveRelativeInSteps(long distanceToMoveInSteps)
 //  Enter:  distanceToMoveInSteps = signed distance to move relative to the current  
 //          position in steps
 //
-void SpeedyStepper::setupRelativeMoveInSteps(long distanceToMoveInSteps)
-{
+void SpeedyStepper::setupRelativeMoveInSteps(long distanceToMoveInSteps) {
   setupMoveInSteps(currentPosition_InSteps + distanceToMoveInSteps);
 }
-
-
 
 //
 // move to the given absolute position, units are in steps, this function does not 
@@ -642,15 +570,12 @@ void SpeedyStepper::setupRelativeMoveInSteps(long distanceToMoveInSteps)
 //  Enter:  absolutePositionToMoveToInSteps = signed absolute position to move to  
 //            in units of steps
 //
-void SpeedyStepper::moveToPositionInSteps(long absolutePositionToMoveToInSteps)
-{
+void SpeedyStepper::moveToPositionInSteps(long absolutePositionToMoveToInSteps) {
   setupMoveInSteps(absolutePositionToMoveToInSteps);
   
-  while(!processMovement())
+    while (!processMovement())
     ;
 }
-
-
 
 //
 // setup a move, units are in steps, no motion occurs until processMove() is called
