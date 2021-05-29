@@ -307,33 +307,6 @@ void SpeedyStepper::setAccelerationInMillimetersPerSecondPerSecond(
       accelerationInMillimetersPerSecondPerSecond * stepsPerMillimeter;
 }
 
-
-
-//
-// home the motor by moving until the homing sensor is activated, then set the  
-// position to zero, with units in millimeters
-//  Enter:  directionTowardHome = 1 to move in a positive direction, -1 to move in 
-//             a negative directions 
-//          speedInMillimetersPerSecond = speed to accelerate up to while moving 
-//             toward home, units in millimeters/second
-//          maxDistanceToMoveInMillimeters = unsigned maximum distance to move 
-//             toward home before giving up
-//          homeSwitchPin = pin number of the home switch, switch should be 
-//             configured to go low when at home
-//  Exit:   true returned if successful, else false
-//
-bool SpeedyStepper::moveToHomeInMillimeters(long directionTowardHome,  
-  float speedInMillimetersPerSecond, long maxDistanceToMoveInMillimeters, 
-  int homeLimitSwitchPin)
-{
-  return(moveToHomeInSteps(directionTowardHome, 
-                          speedInMillimetersPerSecond * stepsPerMillimeter, 
-                          maxDistanceToMoveInMillimeters * stepsPerMillimeter, 
-                          homeLimitSwitchPin));
-}
-
-
-
 //
 // move relative to the current position, units are in millimeters, this function  
 // does not return until the move is complete
@@ -479,33 +452,6 @@ void SpeedyStepper::setAccelerationInRevolutionsPerSecondPerSecond(
     acceleration_InStepsPerSecondPerSecond = 
        accelerationInRevolutionsPerSecondPerSecond * stepsPerRevolution;
 }
-
-
-
-//
-// home the motor by moving until the homing sensor is activated, then set the  
-// position to zero, with units in revolutions
-//  Enter:  directionTowardHome = 1 to move in a positive direction, -1 to move in 
-//             a negative directions 
-//          speedInRevolutionsPerSecond = speed to accelerate up to while moving 
-//             toward home, units in revolutions/second
-//          maxDistanceToMoveInRevolutions = unsigned maximum distance to move 
-//             toward home before giving up
-//          homeSwitchPin = pin number of the home switch, switch should be 
-//             configured to go low when at home
-//  Exit:   true returned if successful, else false
-//
-bool SpeedyStepper::moveToHomeInRevolutions(long directionTowardHome, 
-  float speedInRevolutionsPerSecond, long maxDistanceToMoveInRevolutions, 
-  int homeLimitSwitchPin)
-{
-  return(moveToHomeInSteps(directionTowardHome, 
-                          speedInRevolutionsPerSecond * stepsPerRevolution, 
-                          maxDistanceToMoveInRevolutions * stepsPerRevolution, 
-                          homeLimitSwitchPin));
-}
-
-
 
 //
 // move relative to the current position, units are in revolutions, this function  
@@ -659,128 +605,6 @@ void SpeedyStepper::setAccelerationInStepsPerSecondPerSecond(
 {
     acceleration_InStepsPerSecondPerSecond = accelerationInStepsPerSecondPerSecond;
 }
-
-
-
-//
-// home the motor by moving until the homing sensor is activated, then set the 
-// position to zero with units in steps
-//  Enter:  directionTowardHome = 1 to move in a positive direction, -1 to move in 
-//             a negative directions 
-//          speedInStepsPerSecond = speed to accelerate up to while moving toward 
-//             home, units in steps/second
-//          maxDistanceToMoveInSteps = unsigned maximum distance to move toward 
-//             home before giving up
-//          homeSwitchPin = pin number of the home switch, switch should be 
-//             configured to go low when at home
-//  Exit:   true returned if successful, else false
-//
-bool SpeedyStepper::moveToHomeInSteps(long directionTowardHome, 
-  float speedInStepsPerSecond, long maxDistanceToMoveInSteps, int homeLimitSwitchPin)
-{
-  float originalDesiredSpeed_InStepsPerSecond;
-  bool limitSwitchFlag;
-  
-  
-  //
-  // setup the home switch input pin
-  //
-  pinMode(homeLimitSwitchPin, INPUT_PULLUP);
-  
-  
-  //
-  // remember the current speed setting
-  //
-  originalDesiredSpeed_InStepsPerSecond = desiredSpeed_InStepsPerSecond; 
- 
- 
-  //
-  // if the home switch is not already set, move toward it
-  //
-  if (digitalRead(homeLimitSwitchPin) == HIGH)
-  {
-    //
-    // move toward the home switch
-    //
-    setSpeedInStepsPerSecond(speedInStepsPerSecond);
-    setupRelativeMoveInSteps(maxDistanceToMoveInSteps * directionTowardHome);
-    limitSwitchFlag = false;
-    while(!processMovement())
-    {
-      if (digitalRead(homeLimitSwitchPin) == LOW)
-      {
-        limitSwitchFlag = true;
-        break;
-      }
-    }
-    
-    //
-    // check if switch never detected
-    //
-    if (limitSwitchFlag == false)
-      return(false);
-  }
-  delay(25);
-
-
-  //
-  // the switch has been detected, now move away from the switch
-  //
-  setupRelativeMoveInSteps(maxDistanceToMoveInSteps * directionTowardHome * -1);
-  limitSwitchFlag = false;
-  while(!processMovement())
-  {
-    if (digitalRead(homeLimitSwitchPin) == HIGH)
-    {
-      limitSwitchFlag = true;
-      break;
-    }
-  }
-  delay(25);
-  
-  //
-  // check if switch never detected
-  //
-  if (limitSwitchFlag == false)
-    return(false);
-
-
-  //
-  // have now moved off the switch, move toward it again but slower
-  //
-  setSpeedInStepsPerSecond(speedInStepsPerSecond/8);
-  setupRelativeMoveInSteps(maxDistanceToMoveInSteps * directionTowardHome);
-  limitSwitchFlag = false;
-  while(!processMovement())
-  {
-    if (digitalRead(homeLimitSwitchPin) == LOW)
-    {
-      limitSwitchFlag = true;
-      break;
-    }
-  }
-  delay(25);
-  
-  //
-  // check if switch never detected
-  //
-  if (limitSwitchFlag == false)
-    return(false);
-
-
-  //
-  // successfully homed, set the current position to 0
-  //
-  setCurrentPositionInSteps(0L);    
-
-  //
-  // restore original velocity
-  //
-  setSpeedInStepsPerSecond(originalDesiredSpeed_InStepsPerSecond);
-  return(true);
-}
-
-
 
 //
 // move relative to the current position, units are in steps, this function does 
