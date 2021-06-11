@@ -69,8 +69,10 @@ class SpeedyStepper {
     void setupMoveInRevolutions(float absolutePositionToMoveToInRevolutions);
     float getCurrentVelocityInRevolutionsPerSecond();
 
+    bool stepperEnabled(void);
     void enableStepper(void);
     void disableStepper(void);
+
     void setCurrentPositionInSteps(long currentPositionInSteps);
     long getCurrentPositionInSteps();
     void hardStop();

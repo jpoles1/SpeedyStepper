@@ -231,6 +231,8 @@ void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber) {
     digitalWrite(directionPin, LOW);
 }
 
+bool stepperEnabledFlag = false;
+
 void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber, byte enablePinNumber) {
     stepPin = stepPinNumber;
     directionPin = directionPinNumber;
@@ -247,6 +249,20 @@ void SpeedyStepper::connectToPins(byte stepPinNumber, byte directionPinNumber, b
 
     pinMode(enablePin, OUTPUT);
     digitalWrite(enablePin, LOW);
+}
+
+void SpeedyStepper::enableStepper() {
+    stepperEnabledFlag = true;
+    digitalWrite(enablePin, LOW);
+}
+
+void SpeedyStepper::disableStepper() {
+    stepperEnabledFlag = false;
+    digitalWrite(enablePin, HIGH);
+}
+
+bool SpeedyStepper::stepperEnabled() {
+    return stepperEnabledFlag;
 }
 
 // ---------------------------------------------------------------------------------
