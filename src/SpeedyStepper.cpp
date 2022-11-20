@@ -600,6 +600,8 @@ void SpeedyStepper::moveToPositionInSteps(long absolutePositionToMoveToInSteps) 
 //          units of steps
 //
 void SpeedyStepper::setupMoveInSteps(long absolutePositionToMoveToInSteps) {
+    enableStepper();
+
     long distanceToTravel_InSteps;
 
     //
